@@ -7,6 +7,9 @@ pipeline {
     }
          environment {
         COURSE = "Jenkins"
+        ACC_ID = "160885265516"
+        PROJECT = "roboshop"
+        COMPONENT = "catalogue"
     }
     options {
         timeout(time: 10, unit: 'MINUTES')     //If the pipeline runs longer than 10 minutes, Jenkins will automatically abort it.
@@ -37,11 +40,16 @@ pipeline {
         stage ('Build Image'){
             steps{
                 script{
-                    sh """
-                       docker build -t catalogue:${appVersion} .
-                       docker images
-                    """
+                    withAWS(region:'us-east-1',credentials:'aws-creds') {
+                        sh """
+                            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com
+                            docker build ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
+                            docker images
+                            docker push ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
+                        """
+                    }
                 }
+                
             }
         }
         stage('Deploy') {
